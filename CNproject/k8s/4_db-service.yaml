@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service # backend/server.js의 host와 일치
+spec:
+  type: ClusterIP # 클러스터 내부에서만 접근
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+
