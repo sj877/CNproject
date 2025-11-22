@@ -1,3 +1,5 @@
+const { filterPost } = require('./serverless/filterPost');
+
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -28,16 +30,30 @@ pool.query('CREATE TABLE IF NOT EXISTS posts (id SERIAL PRIMARY KEY, title VARCH
 app.post('/api/posts', async (req, res) => {
   try {
     const { title, content } = req.body;
+
+    const result = filterPost(title, content);
+
+    if (!result.allowed) {
+      return res.status(400).json({
+        error: '욕설이 포함되어 게시글이 차단되었습니다.',
+        reason: result.reason,
+        sanitizedTitle: result.sanitizedTitle,
+        sanitizedContent: result.sanitizedContent
+      });
+    }
+
     const newPost = await pool.query(
       "INSERT INTO posts (title, content) VALUES ($1, $2) RETURNING *",
-      [title, content]
+      [result.sanitizedTitle, result.sanitizedContent]
     );
+
     res.json(newPost.rows[0]);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
+
 
 // R: 모든 게시글 조회
 app.get('/api/posts', async (req, res) => {
